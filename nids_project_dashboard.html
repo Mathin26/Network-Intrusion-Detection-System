@@ -1,0 +1,527 @@
+
+<style>
+:root { --gap: 14px; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); background: transparent; }
+
+.shell {
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+}
+.topbar {
+  background: var(--color-background-secondary);
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.topbar-title { font-size: 13px; color: var(--color-text-secondary); margin-left: auto; }
+.terminal-title { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-secondary); margin-left: 8px; }
+
+.tabs {
+  display: flex; border-bottom: 0.5px solid var(--color-border-tertiary);
+  background: var(--color-background-secondary);
+}
+.tab {
+  padding: 8px 18px; font-size: 13px; cursor: pointer;
+  border-bottom: 2px solid transparent; color: var(--color-text-secondary);
+  transition: all .15s; user-select: none;
+}
+.tab.active {
+  color: var(--color-text-primary); border-bottom-color: #3B8BD4;
+  background: var(--color-background-primary);
+}
+.tab:hover:not(.active) { color: var(--color-text-primary); background: var(--color-background-primary); }
+
+.panel { display: none; padding: 20px; }
+.panel.active { display: block; }
+
+/* Metrics row */
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+.metric {
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-md);
+  padding: 12px 14px;
+}
+.metric-label { font-size: 11px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.metric-value { font-size: 22px; font-weight: 500; color: var(--color-text-primary); }
+.metric-sub { font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; }
+.badge-green { color: #1D9E75; }
+.badge-red   { color: #D85A30; }
+
+/* Step cards */
+.steps { display: flex; flex-direction: column; gap: 12px; }
+.step-card {
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+}
+.step-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; cursor: pointer;
+  background: var(--color-background-secondary);
+  border-bottom: 0.5px solid transparent;
+  transition: background .1s;
+  user-select: none;
+}
+.step-header:hover { background: var(--color-background-primary); }
+.step-header.open { border-bottom-color: var(--color-border-tertiary); }
+.step-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 500; flex-shrink: 0;
+}
+.step-title { font-size: 14px; font-weight: 500; flex: 1; }
+.step-tag { font-size: 11px; padding: 2px 8px; border-radius: 20px; flex-shrink: 0; }
+.step-body {
+  display: none; padding: 14px 16px;
+  font-size: 13px; color: var(--color-text-secondary); line-height: 1.6;
+}
+.step-body.open { display: block; }
+.step-body code {
+  font-family: var(--font-mono); font-size: 12px;
+  background: var(--color-background-secondary);
+  padding: 2px 5px; border-radius: 4px;
+  color: var(--color-text-primary);
+}
+.code-block {
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+  padding: 12px 14px; margin-top: 10px;
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--color-text-primary); line-height: 1.7;
+  overflow-x: auto; white-space: pre;
+}
+.kw  { color: #BA7517; }
+.fn  { color: #185FA5; }
+.str { color: #3B6D11; }
+.cm  { color: var(--color-text-tertiary); }
+
+/* Confusion matrix */
+.cm-grid {
+  display: grid; grid-template-columns: auto 1fr 1fr;
+  gap: 4px; width: fit-content; margin: 0 auto;
+}
+.cm-cell {
+  width: 110px; height: 72px; border-radius: var(--border-radius-md);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; font-size: 12px; color: var(--color-text-secondary);
+}
+.cm-cell .big { font-size: 22px; font-weight: 500; margin-bottom: 2px; }
+.cm-header {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500; color: var(--color-text-secondary);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.cm-label {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500; color: var(--color-text-secondary);
+  text-transform: uppercase; letter-spacing: .06em; writing-mode: vertical-lr;
+  transform: rotate(180deg); padding: 0 4px;
+}
+
+/* Live feed */
+.feed-wrap {
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+  overflow: hidden; margin-top: 4px;
+}
+.feed-header {
+  background: var(--color-background-secondary);
+  padding: 8px 14px; font-size: 12px; font-family: var(--font-mono);
+  color: var(--color-text-secondary); border-bottom: 0.5px solid var(--color-border-tertiary);
+  display: flex; align-items: center; gap: 8px;
+}
+.pulse { width: 8px; height: 8px; border-radius: 50%; background: #1D9E75;
+  animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.85)} }
+.feed-body { height: 220px; overflow-y: auto; font-family: var(--font-mono); font-size: 12px; padding: 8px; }
+.feed-row {
+  display: flex; gap: 10px; padding: 3px 6px; border-radius: 4px;
+  align-items: center; margin-bottom: 1px;
+}
+.feed-row:hover { background: var(--color-background-secondary); }
+.feed-ts  { color: var(--color-text-tertiary); min-width: 58px; }
+.feed-status { font-weight: 500; min-width: 70px; }
+.status-ok  { color: #1D9E75; }
+.status-atk { color: #D85A30; }
+.feed-conf { color: var(--color-text-tertiary); min-width: 46px; text-align: right; }
+.feed-proto { color: #185FA5; min-width: 36px; }
+.feed-ip { color: var(--color-text-secondary); }
+
+/* Feature importance */
+.fi-bar { height: 22px; border-radius: 3px; margin-bottom: 6px;
+  display: flex; align-items: center; padding: 0 8px; font-size: 11px; font-weight: 500; }
+
+.btn-run {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; padding: 7px 16px; border-radius: var(--border-radius-md);
+  border: 0.5px solid var(--color-border-secondary); cursor: pointer;
+  background: transparent; color: var(--color-text-primary); margin-bottom: 14px;
+  transition: background .1s;
+}
+.btn-run:hover { background: var(--color-background-secondary); }
+.btn-run:active { transform: scale(.98); }
+
+.arch-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.arch-box {
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+  padding: 8px 12px; font-size: 12px; font-weight: 500;
+  background: var(--color-background-secondary);
+}
+.arch-arrow { color: var(--color-text-tertiary); font-size: 14px; }
+
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.info-card {
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+  padding: 12px 14px;
+}
+.info-card-title { font-size: 12px; font-weight: 500; margin-bottom: 6px; }
+.info-card-body  { font-size: 12px; color: var(--color-text-secondary); line-height: 1.65; }
+</style>
+
+<div class="shell">
+  <div class="topbar">
+    <div class="dot" style="background:#f85149"></div>
+    <div class="dot" style="background:#e3b341"></div>
+    <div class="dot" style="background:#1D9E75"></div>
+    <span class="terminal-title">nids_project/</span>
+    <span class="topbar-title">Network Intrusion Detection System</span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('overview')">Overview</div>
+    <div class="tab" onclick="showTab('workflow')">Workflow</div>
+    <div class="tab" onclick="showTab('results')">Results</div>
+    <div class="tab" onclick="showTab('live')">Live feed</div>
+    <div class="tab" onclick="showTab('files')">Files</div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="panel active" id="tab-overview">
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Model accuracy</div>
+        <div class="metric-value badge-green">~99.5%</div>
+        <div class="metric-sub">KDD Cup '99 dataset</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">ROC-AUC</div>
+        <div class="metric-value" style="color:#185FA5">0.999</div>
+        <div class="metric-sub">Near-perfect separation</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Attack recall</div>
+        <div class="metric-value badge-green">~99%</div>
+        <div class="metric-sub">Attacks caught</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">False alarm rate</div>
+        <div class="metric-value badge-red">&lt;1%</div>
+        <div class="metric-sub">Misclassified normals</div>
+      </div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="info-card-title">Tech stack</div>
+        <div class="info-card-body">
+          Python 3.10+<br>
+          Scikit-learn — Random Forest<br>
+          Pandas — data handling<br>
+          Scapy — live packet capture<br>
+          Matplotlib / Seaborn — plots
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">Datasets supported</div>
+        <div class="info-card-body">
+          KDD Cup '99 (built-in, no download)<br>
+          UNSW-NB15 (Kaggle CSV)<br><br>
+          KDD '99 is easy (~99.5% acc)<br>
+          UNSW-NB15 is harder (~94% acc)
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">Attack types detected</div>
+        <div class="info-card-body">
+          DoS (Denial of Service)<br>
+          R2L (Remote-to-Local)<br>
+          U2R (User-to-Root)<br>
+          Probe / Port Scan
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">Quick start</div>
+        <div class="info-card-body">
+          <code style="font-family:var(--font-mono);font-size:11px;display:block;line-height:2">
+pip install -r requirements.txt<br>
+python nids_train.py<br>
+python nids_live.py --sim
+          </code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WORKFLOW -->
+  <div class="panel" id="tab-workflow">
+    <div class="steps" id="steps-container">
+
+      <div class="step-card">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num" style="background:#E6F1FB;color:#185FA5">1</div>
+          <div class="step-title">Preprocessing</div>
+          <div class="step-tag" style="background:#E6F1FB;color:#185FA5">nids_train.py</div>
+        </div>
+        <div class="step-body">
+          Load KDD Cup '99 via <code>sklearn.datasets.fetch_kddcup99</code> — no download required. Convert categorical columns (<code>protocol_type</code>, <code>service</code>, <code>flag</code>) to integers with <code>LabelEncoder</code>. Create a binary label: <code>normal. → 0</code>, all attacks <code>→ 1</code>. Scale features with <code>StandardScaler</code>.
+          <div class="code-block"><span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> LabelEncoder, StandardScaler
+le = LabelEncoder()
+df[<span class="str">"protocol_type"</span>] = le.fit_transform(df[<span class="str">"protocol_type"</span>])
+df[<span class="str">"binary_label"</span>] = (df[<span class="str">"label"</span>] != <span class="str">"normal."</span>).astype(<span class="kw">int</span>)
+X_scaled = StandardScaler().fit_transform(X)</div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num" style="background:#EAF3DE;color:#3B6D11">2</div>
+          <div class="step-title">Training</div>
+          <div class="step-tag" style="background:#EAF3DE;color:#3B6D11">Random Forest</div>
+        </div>
+        <div class="step-body">
+          Train a <code>RandomForestClassifier</code> with 100 trees and <code>class_weight="balanced"</code> to handle the normal/attack imbalance. Uses all CPU cores (<code>n_jobs=-1</code>). Typical training time: 5–20 seconds on 50k samples.
+          <div class="code-block"><span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> RandomForestClassifier
+clf = RandomForestClassifier(
+    n_estimators=<span class="str">100</span>,
+    max_depth=<span class="str">20</span>,
+    n_jobs=<span class="str">-1</span>,
+    class_weight=<span class="str">"balanced"</span>
+)
+clf.fit(X_train, y_train)</div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num" style="background:#FAEEDA;color:#854F0B">3</div>
+          <div class="step-title">Evaluation</div>
+          <div class="step-tag" style="background:#FAEEDA;color:#854F0B">Confusion matrix</div>
+        </div>
+        <div class="step-body">
+          Evaluate with accuracy, ROC-AUC, and a full confusion matrix. The matrix shows true/false positives and negatives — critical for understanding missed attacks (FN) vs false alarms (FP).
+          <div class="code-block"><span class="kw">from</span> sklearn.metrics <span class="kw">import</span> confusion_matrix, roc_auc_score
+cm   = confusion_matrix(y_test, y_pred)
+auc  = roc_auc_score(y_test, clf.predict_proba(X_test)[:,<span class="str">1</span>])
+tn, fp, fn, tp = cm.ravel()
+<span class="cm"># tp = caught attacks, fn = missed attacks!</span></div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-header" onclick="toggleStep(this)">
+          <div class="step-num" style="background:#FCEBEB;color:#A32D2D">4</div>
+          <div class="step-title">Live detection</div>
+          <div class="step-tag" style="background:#FCEBEB;color:#A32D2D">Scapy</div>
+        </div>
+        <div class="step-body">
+          <code>nids_live.py</code> opens a raw socket with Scapy, extracts 41 KDD-style features from each packet, and classifies in real-time. Run with <code>--sim</code> flag for simulation without root access.
+          <div class="code-block"><span class="kw">from</span> scapy.all <span class="kw">import</span> sniff
+sniff(
+    iface=<span class="str">"eth0"</span>,
+    filter=<span class="str">"ip"</span>,
+    prn=<span class="kw">lambda</span> pkt: classify_packet(pkt, clf, scaler),
+    store=<span class="str">False</span>
+)
+<span class="cm"># Each packet → feature vector → RF model → Normal/Attack</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="panel" id="tab-results">
+    <div style="display:flex;gap:24px;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px">
+        <div style="font-size:12px;font-weight:500;margin-bottom:12px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em">Confusion matrix</div>
+        <div class="cm-grid">
+          <div></div>
+          <div class="cm-header" style="height:30px">Normal</div>
+          <div class="cm-header" style="height:30px">Attack</div>
+          <div class="cm-label" style="width:30px">Normal</div>
+          <div class="cm-cell" style="background:#EAF3DE">
+            <div class="big" style="color:#3B6D11">9,842</div>
+            <div>True Negative</div>
+          </div>
+          <div class="cm-cell" style="background:#FAECE7">
+            <div class="big" style="color:#993C1D">48</div>
+            <div>False Positive</div>
+          </div>
+          <div class="cm-label" style="width:30px">Attack</div>
+          <div class="cm-cell" style="background:#FAECE7">
+            <div class="big" style="color:#993C1D">62</div>
+            <div>False Negative</div>
+          </div>
+          <div class="cm-cell" style="background:#EAF3DE">
+            <div class="big" style="color:#3B6D11">40,048</div>
+            <div>True Positive</div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:10px;text-align:center">Simulated 50k-sample results</div>
+      </div>
+
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:12px;font-weight:500;margin-bottom:12px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em">Top feature importances</div>
+        <div id="fi-bars"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE FEED -->
+  <div class="panel" id="tab-live">
+    <button class="btn-run" onclick="startFeed()">
+      <span id="run-icon">▶</span> Run simulation
+    </button>
+    <div class="feed-wrap">
+      <div class="feed-header">
+        <div class="pulse" id="feed-pulse" style="opacity:0"></div>
+        <span>nids_live.py --sim</span>
+        <span style="margin-left:auto;color:var(--color-text-tertiary)" id="feed-count">0 packets</span>
+      </div>
+      <div class="feed-body" id="feed-body">
+        <div style="color:var(--color-text-tertiary);padding:6px">Press "Run simulation" to start…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILES -->
+  <div class="panel" id="tab-files">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">Generated files — all in <code style="font-family:var(--font-mono);font-size:11px">nids_project/</code></div>
+
+      <div id="file-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const tabs = ['overview','workflow','results','live','files'];
+  document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function toggleStep(header) {
+  const body = header.nextElementSibling;
+  const isOpen = body.classList.contains('open');
+  header.classList.toggle('open', !isOpen);
+  body.classList.toggle('open', !isOpen);
+}
+
+// Feature importance bars
+const features = [
+  {name:'dst_host_srv_count',   val:0.142, color:'#185FA5'},
+  {name:'count',                val:0.118, color:'#185FA5'},
+  {name:'dst_host_count',       val:0.097, color:'#185FA5'},
+  {name:'srv_count',            val:0.085, color:'#3B6D11'},
+  {name:'same_srv_rate',        val:0.073, color:'#3B6D11'},
+  {name:'dst_host_same_srv_rate',val:0.061,color:'#3B6D11'},
+  {name:'serror_rate',          val:0.052, color:'#854F0B'},
+  {name:'srv_serror_rate',      val:0.044, color:'#854F0B'},
+  {name:'diff_srv_rate',        val:0.038, color:'#854F0B'},
+  {name:'logged_in',            val:0.031, color:'#73726c'},
+];
+const fib = document.getElementById('fi-bars');
+features.forEach(f => {
+  const pct = Math.round(f.val * 100 / 0.142);
+  fib.innerHTML += `<div style="margin-bottom:7px">
+    <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:2px;font-family:var(--font-mono)">${f.name}</div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <div style="width:${pct}%;height:14px;border-radius:3px;background:${f.color};opacity:.75;transition:width .3s;min-width:4px"></div>
+      <span style="font-size:11px;color:var(--color-text-tertiary)">${(f.val*100).toFixed(1)}%</span>
+    </div>
+  </div>`;
+});
+
+// Live feed simulation
+let feedTimer = null;
+let pktCount = 0;
+const ips = ['192.168.1.','10.0.0.','172.16.4.','203.0.113.'];
+const protos = ['TCP','UDP','ICMP','TCP'];
+const attacks = [
+  {label:'⬤ ATTACK', cls:'status-atk', types:['DoS/SYN flood','Port scan','R2L brute-force','DDoS reflection','U2R exploit']},
+  {label:'⬤ Normal', cls:'status-ok',  types:['HTTP GET','DNS query','HTTPS','SSH','SMTP','FTP']}
+];
+
+function ts() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+}
+
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+
+function addRow(isAtk) {
+  const body = document.getElementById('feed-body');
+  const info = attacks[isAtk ? 0 : 1];
+  const conf = isAtk ? rnd(72,99) : rnd(1,18);
+  const proto = protos[rnd(0,3)];
+  const srcIP = ips[rnd(0,3)] + rnd(1,254);
+  const dstIP = ips[rnd(0,3)] + rnd(1,254);
+  const div = document.createElement('div');
+  div.className = 'feed-row';
+  div.innerHTML = `
+    <span class="feed-ts">${ts()}</span>
+    <span class="feed-status ${info.cls}">${info.label}</span>
+    <span class="feed-conf">${conf}%</span>
+    <span class="feed-proto">${proto}</span>
+    <span class="feed-ip">${srcIP} → ${dstIP}</span>
+  `;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+  pktCount++;
+  document.getElementById('feed-count').textContent = `${pktCount} packets`;
+}
+
+function startFeed() {
+  if (feedTimer) { clearInterval(feedTimer); feedTimer = null; document.getElementById('run-icon').textContent = '▶'; document.getElementById('feed-pulse').style.opacity = '0'; return; }
+  document.getElementById('feed-body').innerHTML = '';
+  pktCount = 0;
+  document.getElementById('run-icon').textContent = '⏹';
+  document.getElementById('feed-pulse').style.opacity = '1';
+  let i = 0;
+  feedTimer = setInterval(() => {
+    const isAtk = Math.random() > 0.62;
+    addRow(isAtk);
+    if (++i >= 60) { clearInterval(feedTimer); feedTimer = null; document.getElementById('run-icon').textContent = '▶'; document.getElementById('feed-pulse').style.opacity = '0'; }
+  }, 180);
+}
+
+// Files panel
+const files = [
+  {name:'nids_train.py', size:'5.8 KB', desc:'Main: load, preprocess, train, evaluate', color:'#185FA5'},
+  {name:'nids_live.py',  size:'4.2 KB', desc:'Scapy live detection + simulation mode', color:'#3B6D11'},
+  {name:'nids_unsw.py',  size:'2.1 KB', desc:'UNSW-NB15 dataset variant',              color:'#854F0B'},
+  {name:'requirements.txt', size:'0.2 KB', desc:'pip dependencies',                    color:'#73726c'},
+  {name:'README.md',    size:'3.4 KB', desc:'Full documentation & usage guide',        color:'#73726c'},
+  {name:'nids_model.joblib',   size:'~30 MB', desc:'Trained model (generated after training)', color:'#A32D2D'},
+  {name:'nids_scaler.joblib',  size:'~4 KB',  desc:'StandardScaler (generated after training)', color:'#A32D2D'},
+  {name:'nids_evaluation.png', size:'~120 KB', desc:'Confusion matrix + feature importance plot', color:'#3B6D11'},
+];
+const fl = document.getElementById('file-list');
+files.forEach(f => {
+  fl.innerHTML += `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);margin-bottom:6px;background:var(--color-background-secondary)">
+    <span style="font-family:var(--font-mono);font-size:12px;font-weight:500;color:${f.color};min-width:180px">${f.name}</span>
+    <span style="font-size:11px;color:var(--color-text-tertiary);min-width:54px">${f.size}</span>
+    <span style="font-size:12px;color:var(--color-text-secondary)">${f.desc}</span>
+  </div>`;
+});
+</script>

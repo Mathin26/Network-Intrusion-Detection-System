@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIDS — Problem Statement</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #050a0e;
+    --bg2:      #0b1219;
+    --bg3:      #0f1923;
+    --border:   #1a2f3f;
+    --border2:  #1f3a4f;
+    --accent:   #00c8a0;
+    --accent2:  #0087c8;
+    --danger:   #e84848;
+    --warn:     #e8a23a;
+    --text:     #c8d8e0;
+    --text2:    #7a9ab0;
+    --text3:    #3d5a6a;
+    --mono:     'Share Tech Mono', monospace;
+    --sans:     'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.7;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,200,160,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,200,160,.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* Scan line */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,.18) 2px,
+      rgba(0,0,0,.18) 4px
+    );
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ─── HEADER ──────────────────────────────── */
+  header {
+    position: relative; z-index: 10;
+    padding: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 48px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(5,10,14,.95);
+  }
+
+  .nav-logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: .15em;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .nav-logo .blink {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    animation: blink 1.2s step-end infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .nav-links {
+    display: flex; gap: 32px;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--text2); letter-spacing: .08em;
+  }
+
+  .nav-links a { color: inherit; text-decoration: none; transition: color .2s; }
+  .nav-links a:hover { color: var(--accent); }
+
+  /* Hero section */
+  .hero {
+    position: relative; z-index: 2;
+    padding: 80px 48px 72px;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 60px;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .hero-eyebrow {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--accent); letter-spacing: .2em;
+    text-transform: uppercase; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: block; width: 32px; height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-size: clamp(36px, 5vw, 58px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    color: #e8f4fc;
+    margin-bottom: 24px;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .hero-desc {
+    font-size: 17px;
+    color: var(--text2);
+    line-height: 1.75;
+    max-width: 520px;
+    margin-bottom: 36px;
+  }
+
+  .hero-tags {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+
+  .tag {
+    font-family: var(--mono); font-size: 11px;
+    padding: 5px 12px;
+    border: 1px solid var(--border2);
+    border-radius: 2px;
+    color: var(--text2);
+    letter-spacing: .08em;
+    background: rgba(15,25,35,.6);
+  }
+
+  .tag.green { border-color: rgba(0,200,160,.4); color: var(--accent); background: rgba(0,200,160,.05); }
+  .tag.red   { border-color: rgba(232,72,72,.4);  color: var(--danger); background: rgba(232,72,72,.05); }
+  .tag.blue  { border-color: rgba(0,135,200,.4);  color: var(--accent2); background: rgba(0,135,200,.05); }
+
+  /* Stat box */
+  .stat-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-panel::before {
+    content: '';
+    position: absolute; top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: linear-gradient(180deg, var(--accent), var(--accent2));
+  }
+
+  .stat-title {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text3); letter-spacing: .15em;
+    text-transform: uppercase; margin-bottom: 20px;
+  }
+
+  .stat-item {
+    display: flex; flex-direction: column;
+    margin-bottom: 20px;
+  }
+
+  .stat-item:last-child { margin-bottom: 0; }
+
+  .stat-num {
+    font-family: var(--mono); font-size: 32px;
+    font-weight: 400; color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 12px; color: var(--text2);
+    margin-top: 4px;
+  }
+
+  .stat-divider {
+    height: 1px; background: var(--border);
+    margin: 16px 0;
+  }
+
+  /* ─── MAIN CONTENT ─────────────────────────── */
+  main {
+    position: relative; z-index: 2;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 48px 80px;
+  }
+
+  /* Section header */
+  .section-header {
+    display: flex; align-items: baseline; gap: 16px;
+    margin-bottom: 32px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-num {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--accent); letter-spacing: .2em;
+  }
+
+  h2 {
+    font-size: 22px; font-weight: 700;
+    color: #e0eef7; letter-spacing: -.01em;
+  }
+
+  /* Cards */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 60px;
+  }
+
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s, transform .2s;
+  }
+
+  .card:hover {
+    border-color: var(--border2);
+    transform: translateY(-2px);
+  }
+
+  .card-icon {
+    font-family: var(--mono); font-size: 22px;
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  .card-title {
+    font-size: 14px; font-weight: 700;
+    color: #d0e8f5; margin-bottom: 8px;
+    letter-spacing: .01em;
+  }
+
+  .card-body {
+    font-size: 13px; color: var(--text2);
+    line-height: 1.65;
+  }
+
+  .card-accent-line {
+    position: absolute; bottom: 0; left: 0;
+    height: 2px; width: 0;
+    transition: width .3s ease;
+  }
+
+  .card:hover .card-accent-line { width: 100%; }
+
+  /* Problem statement block */
+  .problem-block {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 36px 40px;
+    margin-bottom: 60px;
+    position: relative;
+  }
+
+  .problem-block .corner {
+    position: absolute;
+    width: 14px; height: 14px;
+    border-color: var(--accent);
+    border-style: solid;
+  }
+
+  .corner.tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+  .corner.tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+  .corner.bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+  .corner.br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+  .problem-block p {
+    font-size: 16px; color: var(--text); line-height: 1.8;
+    margin-bottom: 16px;
+  }
+
+  .problem-block p:last-child { margin-bottom: 0; }
+
+  .problem-block strong {
+    color: #e0eef7; font-weight: 700;
+  }
+
+  .highlight {
+    color: var(--accent);
+    font-family: var(--mono); font-size: 14px;
+    padding: 2px 6px;
+    background: rgba(0,200,160,.08);
+    border-radius: 2px;
+  }
+
+  /* Attack types table */
+  .attack-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px; margin-bottom: 60px;
+  }
+
+  .attack-table thead tr {
+    border-bottom: 1px solid var(--border2);
+  }
+
+  .attack-table th {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text3); letter-spacing: .15em;
+    text-transform: uppercase; padding: 10px 16px;
+    text-align: left; font-weight: 400;
+  }
+
+  .attack-table td {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+    vertical-align: top;
+  }
+
+  .attack-table tr:hover td { background: rgba(15,25,35,.8); }
+
+  .attack-table td:first-child {
+    font-family: var(--mono); font-size: 12px;
+    color: var(--danger); letter-spacing: .05em;
+  }
+
+  .attack-table td.name {
+    color: #c5dce8; font-weight: 600; font-size: 14px;
+  }
+
+  /* Pipeline */
+  .pipeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    margin-bottom: 60px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .pipe-step {
+    padding: 28px 24px;
+    border-right: 1px solid var(--border);
+    position: relative;
+    background: var(--bg2);
+    transition: background .2s;
+  }
+
+  .pipe-step:last-child { border-right: none; }
+  .pipe-step:hover { background: var(--bg3); }
+
+  .pipe-step::after {
+    content: '→';
+    position: absolute;
+    right: -12px; top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--mono); font-size: 14px;
+    color: var(--text3); z-index: 1;
+  }
+
+  .pipe-step:last-child::after { display: none; }
+
+  .pipe-num {
+    font-family: var(--mono); font-size: 10px;
+    color: var(--text3); letter-spacing: .2em;
+    margin-bottom: 12px;
+  }
+
+  .pipe-title {
+    font-size: 14px; font-weight: 700;
+    color: #d0e8f5; margin-bottom: 8px;
+  }
+
+  .pipe-body {
+    font-size: 12px; color: var(--text2); line-height: 1.6;
+  }
+
+  .pipe-step .pipe-tag {
+    display: inline-block; margin-top: 10px;
+    font-family: var(--mono); font-size: 10px;
+    padding: 3px 8px;
+    background: rgba(0,200,160,.08);
+    color: var(--accent);
+    border: 1px solid rgba(0,200,160,.2);
+    border-radius: 2px;
+  }
+
+  /* Dataset comparison */
+  .dataset-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin-bottom: 60px;
+  }
+
+  .dataset-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px;
+    transition: border-color .2s;
+  }
+
+  .dataset-card:hover { border-color: var(--border2); }
+
+  .dataset-card.primary { border-color: rgba(0,200,160,.3); }
+  .dataset-card.primary .ds-badge {
+    background: rgba(0,200,160,.1);
+    color: var(--accent);
+    border-color: rgba(0,200,160,.3);
+  }
+
+  .ds-badge {
+    display: inline-block; font-family: var(--mono); font-size: 10px;
+    padding: 3px 9px; border: 1px solid var(--border2);
+    border-radius: 2px; color: var(--text2); margin-bottom: 14px;
+    letter-spacing: .1em;
+  }
+
+  .ds-name {
+    font-size: 16px; font-weight: 700;
+    color: #d8ecf8; margin-bottom: 6px;
+  }
+
+  .ds-year {
+    font-family: var(--mono); font-size: 12px;
+    color: var(--text3); margin-bottom: 14px;
+  }
+
+  .ds-meta {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 16px;
+  }
+
+  .ds-meta-item { }
+  .ds-meta-label {
+    font-size: 10px; color: var(--text3); text-transform: uppercase;
+    letter-spacing: .1em; font-family: var(--mono);
+  }
+  .ds-meta-value {
+    font-size: 15px; font-weight: 700;
+    color: var(--text); font-family: var(--mono);
+  }
+
+  .ds-desc { font-size: 12px; color: var(--text2); line-height: 1.65; }
+
+  /* Goal section */
+  .goal-list {
+    display: flex; flex-direction: column; gap: 12px;
+    margin-bottom: 60px;
+  }
+
+  .goal-item {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 14px;
+    align-items: start;
+    padding: 16px 20px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: border-color .2s;
+  }
+
+  .goal-item:hover { border-color: var(--border2); }
+
+  .goal-check {
+    width: 28px; height: 28px;
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 14px;
+    color: var(--accent);
+    flex-shrink: 0; margin-top: 1px;
+  }
+
+  .goal-text { font-size: 14px; color: var(--text); line-height: 1.65; }
+  .goal-text strong { color: #dceef8; }
+
+  /* Footer */
+  footer {
+    position: relative; z-index: 2;
+    border-top: 1px solid var(--border);
+    padding: 24px 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text3); letter-spacing: .08em;
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate {
+    opacity: 0;
+    animation: fadeUp .6s ease forwards;
+  }
+
+  .delay-1 { animation-delay: .1s; }
+  .delay-2 { animation-delay: .2s; }
+  .delay-3 { animation-delay: .3s; }
+  .delay-4 { animation-delay: .4s; }
+  .delay-5 { animation-delay: .5s; }
+
+  /* Terminal block */
+  .terminal {
+    background: #030708;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 60px;
+    font-family: var(--mono);
+  }
+
+  .terminal-bar {
+    background: var(--bg2);
+    padding: 8px 14px;
+    display: flex; align-items: center; gap: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .terminal-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+  }
+
+  .terminal-bar span {
+    font-size: 11px; color: var(--text3);
+    margin-left: 8px; letter-spacing: .08em;
+  }
+
+  .terminal-body { padding: 20px 24px; }
+
+  .terminal-line {
+    font-size: 13px; line-height: 2;
+    display: block;
+  }
+
+  .t-prompt { color: var(--accent2); }
+  .t-cmd    { color: var(--text); }
+  .t-out    { color: var(--text2); }
+  .t-ok     { color: var(--accent); }
+  .t-warn   { color: var(--warn); }
+  .t-err    { color: var(--danger); }
+  .t-comment{ color: var(--text3); }
+
+  /* Scroll indicator */
+  .scroll-hint {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text3); letter-spacing: .1em;
+    margin-top: 36px;
+  }
+
+  .scroll-hint .arrow {
+    width: 18px; height: 18px;
+    border: 1px solid var(--text3);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    animation: bounce .8s ease-in-out infinite alternate;
+  }
+
+  @keyframes bounce { from{transform:translateY(0)} to{transform:translateY(3px)} }
+
+  @media(max-width: 900px) {
+    .hero       { grid-template-columns: 1fr; gap: 40px; padding: 48px 24px 40px; }
+    main        { padding: 0 24px 60px; }
+    .card-grid  { grid-template-columns: 1fr; }
+    .pipeline   { grid-template-columns: 1fr 1fr; }
+    .dataset-grid { grid-template-columns: 1fr; }
+    .nav-bar    { padding: 14px 24px; }
+    footer      { padding: 20px 24px; flex-direction: column; gap: 8px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<header>
+  <div class="nav-bar">
+    <div class="nav-logo">
+      <div class="blink"></div>
+      NIDS_v1.0
+    </div>
+    <nav class="nav-links">
+      <a href="#problem">Problem</a>
+      <a href="#attacks">Attacks</a>
+      <a href="#solution">Solution</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#datasets">Datasets</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<section style="position:relative;z-index:2;border-bottom:1px solid var(--border)">
+  <div class="hero">
+    <div>
+      <div class="hero-eyebrow animate delay-1">Network Security · Machine Learning</div>
+      <h1 class="animate delay-2">Network<br><span>Intrusion</span><br>Detection System</h1>
+      <p class="hero-desc animate delay-3">
+        Every second, thousands of malicious packets probe, flood, and exploit networked systems worldwide. 
+        Traditional rule-based firewalls can't keep pace. This project applies machine learning to 
+        classify network traffic as normal or an attack — in real time.
+      </p>
+      <div class="hero-tags animate delay-4">
+        <span class="tag green">Random Forest</span>
+        <span class="tag blue">KDD Cup '99</span>
+        <span class="tag blue">UNSW-NB15</span>
+        <span class="tag red">DoS / DDoS</span>
+        <span class="tag red">Port Scan</span>
+        <span class="tag">Scikit-Learn</span>
+        <span class="tag">Scapy</span>
+        <span class="tag">Python 3</span>
+      </div>
+      <div class="scroll-hint animate delay-5">
+        <div class="arrow">↓</div>
+        scroll to explore
+      </div>
+    </div>
+    <div class="stat-panel animate delay-3">
+      <div class="stat-title">// threat landscape 2024</div>
+      <div class="stat-item">
+        <span class="stat-num">2,200+</span>
+        <span class="stat-label">Cyber attacks per day globally</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-num">$4.9M</span>
+        <span class="stat-label">Average cost of a data breach (USD)</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-num">39 sec</span>
+        <span class="stat-label">Average time between hacker attacks</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-num">99.5%</span>
+        <span class="stat-label">Model accuracy on KDD Cup '99</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MAIN -->
+<main>
+
+  <!-- ── PROBLEM STATEMENT ──────────────────── -->
+  <section id="problem" style="padding-top:60px">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>Problem Statement</h2>
+    </div>
+
+    <div class="problem-block">
+      <div class="corner tl"></div><div class="corner tr"></div>
+      <div class="corner bl"></div><div class="corner br"></div>
+
+      <p>
+        Modern computer networks carry billions of packets daily. Embedded within this normal traffic are 
+        <strong>malicious packets</strong> — crafted by attackers to overwhelm servers, steal credentials, 
+        escalate privileges, or establish unauthorized remote access. The challenge is identifying these 
+        attacks <strong>automatically, accurately, and in real time</strong>.
+      </p>
+      <p>
+        Traditional <strong>signature-based intrusion detection</strong> systems maintain lists of known attack 
+        patterns. They are effective against known threats but fail against zero-day exploits and novel attack 
+        variants. They also require constant manual updates and produce high false-positive rates on modern 
+        high-throughput networks.
+      </p>
+      <p>
+        This project addresses the problem by framing network intrusion detection as a 
+        <span class="highlight">supervised binary classification</span> task: given a connection record 
+        described by <strong>41 numerical and categorical features</strong> (protocol, duration, byte counts, 
+        error rates, etc.), predict whether the connection is <strong>Normal</strong> or an <strong>Attack</strong>. 
+        A <span class="highlight">Random Forest Classifier</span> is trained on labeled historical traffic 
+        (KDD Cup '99 / UNSW-NB15) and deployed to classify live packets captured via 
+        <span class="highlight">Scapy</span>.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── WHY IT MATTERS ──────────────────────── -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>Why This Problem Is Hard</h2>
+    </div>
+
+    <div class="card-grid">
+      <div class="card">
+        <span class="card-icon" style="color:var(--danger)">⚡</span>
+        <div class="card-title">Scale & Speed</div>
+        <div class="card-body">Enterprise networks process millions of packets per second. Any detection system must be fast enough to classify in near real-time without creating a bottleneck.</div>
+        <div class="card-accent-line" style="background:var(--danger)"></div>
+      </div>
+      <div class="card">
+        <span class="card-icon" style="color:var(--warn)">⚖</span>
+        <div class="card-title">Class Imbalance</div>
+        <div class="card-body">In real traffic, attacks are rare compared to normal connections. A naive classifier that labels everything as "normal" achieves high accuracy but catches zero attacks.</div>
+        <div class="card-accent-line" style="background:var(--warn)"></div>
+      </div>
+      <div class="card">
+        <span class="card-icon" style="color:var(--accent2)">🔀</span>
+        <div class="card-title">Feature Heterogeneity</div>
+        <div class="card-body">Network data mixes categorical features (protocol type, service) with continuous values (byte counts, rates). Preprocessing and encoding are non-trivial at scale.</div>
+        <div class="card-accent-line" style="background:var(--accent2)"></div>
+      </div>
+      <div class="card">
+        <span class="card-icon" style="color:var(--accent)">🧬</span>
+        <div class="card-title">Attack Diversity</div>
+        <div class="card-body">Attacks span four major categories — DoS, Probe, R2L, U2R — each with dozens of sub-types and distinct traffic signatures. A single model must generalise across all.</div>
+        <div class="card-accent-line" style="background:var(--accent)"></div>
+      </div>
+      <div class="card">
+        <span class="card-icon" style="color:var(--danger)">🎭</span>
+        <div class="card-title">Evasion Techniques</div>
+        <div class="card-body">Sophisticated attackers deliberately craft traffic to resemble legitimate connections, fragment payloads, or randomise timing to evade detection systems.</div>
+        <div class="card-accent-line" style="background:var(--danger)"></div>
+      </div>
+      <div class="card">
+        <span class="card-icon" style="color:var(--warn)">⚙</span>
+        <div class="card-title">False Alarm Cost</div>
+        <div class="card-body">Every false positive (normal traffic flagged as attack) triggers an alert and wastes analyst time. In a busy SOC, alert fatigue leads to real attacks being ignored.</div>
+        <div class="card-accent-line" style="background:var(--warn)"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ATTACK TYPES ────────────────────────── -->
+  <section id="attacks">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>Attack Taxonomy</h2>
+    </div>
+
+    <table class="attack-table">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th>Examples</th>
+          <th>Goal</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>DoS</td>
+          <td class="name">Denial of Service</td>
+          <td>Flood a target server with so many requests that it becomes unavailable to legitimate users.</td>
+          <td>SYN flood, Ping of Death, smurf, teardrop, neptune</td>
+          <td>Disrupt availability</td>
+        </tr>
+        <tr>
+          <td>Probe</td>
+          <td class="name">Reconnaissance</td>
+          <td>Scan a network or host to identify open ports, services, and vulnerabilities before launching a targeted attack.</td>
+          <td>nmap, ipsweep, portsweep, satan, mscan</td>
+          <td>Map attack surface</td>
+        </tr>
+        <tr>
+          <td>R2L</td>
+          <td class="name">Remote to Local</td>
+          <td>An attacker without a local account exploits a vulnerability to gain local user access to a target machine.</td>
+          <td>FTP write, guess_passwd, imap, phf, spy, warezclient</td>
+          <td>Gain local access</td>
+        </tr>
+        <tr>
+          <td>U2R</td>
+          <td class="name">User to Root</td>
+          <td>A local user exploits a vulnerability to escalate privileges to superuser/root, gaining full system control.</td>
+          <td>buffer_overflow, loadmodule, perl, rootkit, sqlattack</td>
+          <td>Full system takeover</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── SOLUTION ────────────────────────────── -->
+  <section id="solution">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>The ML Solution</h2>
+    </div>
+
+    <div class="goal-list">
+      <div class="goal-item">
+        <div class="goal-check">✓</div>
+        <div class="goal-text"><strong>Frame as binary classification.</strong> Collapse 22 attack sub-types into a single "Attack" class (label = 1) versus "Normal" (label = 0). This makes the problem tractable while covering all major threat categories.</div>
+      </div>
+      <div class="goal-item">
+        <div class="goal-check">✓</div>
+        <div class="goal-text"><strong>Use a Random Forest classifier.</strong> Random Forests are highly accurate on tabular data, naturally handle mixed numeric/categorical features, provide feature importances for interpretability, and require minimal hyperparameter tuning.</div>
+      </div>
+      <div class="goal-item">
+        <div class="goal-check">✓</div>
+        <div class="goal-text"><strong>Address class imbalance.</strong> Use <code style="font-family:var(--mono);font-size:12px;color:var(--accent)">class_weight="balanced"</code> so the model penalises missing a rare attack more than misclassifying a common normal connection.</div>
+      </div>
+      <div class="goal-item">
+        <div class="goal-check">✓</div>
+        <div class="goal-text"><strong>Evaluate with the right metrics.</strong> Accuracy alone is misleading on imbalanced data. The confusion matrix, ROC-AUC, precision, recall, and F1 score together give a complete picture of detection quality.</div>
+      </div>
+      <div class="goal-item">
+        <div class="goal-check">✓</div>
+        <div class="goal-text"><strong>Deploy for live detection via Scapy.</strong> The trained model is serialised with joblib and loaded by a Scapy-based sniffer that extracts KDD-style features from each captured packet and classifies it in real time.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PIPELINE ────────────────────────────── -->
+  <section id="pipeline">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>Project Pipeline</h2>
+    </div>
+
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num">STEP 01</div>
+        <div class="pipe-title">Data Loading</div>
+        <div class="pipe-body">Load KDD Cup '99 via sklearn built-in or UNSW-NB15 from Kaggle CSV. Decode byte strings, subsample for speed.</div>
+        <span class="pipe-tag">fetch_kddcup99()</span>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">STEP 02</div>
+        <div class="pipe-title">Preprocessing</div>
+        <div class="pipe-body">LabelEncode categorical columns. Create binary label. StandardScale all 41 features. Stratified train/test split 80/20.</div>
+        <span class="pipe-tag">LabelEncoder</span>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">STEP 03</div>
+        <div class="pipe-title">Training</div>
+        <div class="pipe-body">Fit RandomForestClassifier (100 trees, depth 20, balanced weights). Parallelised across all CPU cores via n_jobs=-1.</div>
+        <span class="pipe-tag">RandomForest</span>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">STEP 04</div>
+        <div class="pipe-title">Evaluation</div>
+        <div class="pipe-body">Confusion matrix, ROC-AUC, classification report. Feature importance plot. Score distribution histogram.</div>
+        <span class="pipe-tag">confusion_matrix</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TERMINAL DEMO ───────────────────────── -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2>Expected Output</h2>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot" style="background:#e84848"></div>
+        <div class="terminal-dot" style="background:#e8a23a"></div>
+        <div class="terminal-dot" style="background:#1D9E75"></div>
+        <span>bash — nids_project/</span>
+      </div>
+      <div class="terminal-body">
+        <span class="terminal-line"><span class="t-prompt">$ </span><span class="t-cmd">python nids_train.py</span></span>
+        <span class="terminal-line t-comment"># ═══════════════════════════════════════════════════</span>
+        <span class="terminal-line t-out">&nbsp; [1/5]  Loading KDD Cup '99 Dataset …</span>
+        <span class="terminal-line t-ok">&nbsp;&nbsp; ✔  Rows loaded  : 50,000</span>
+        <span class="terminal-line t-ok">&nbsp;&nbsp; ✔  Features     : 41</span>
+        <span class="terminal-line t-out">&nbsp; [2/5]  Preprocessing …</span>
+        <span class="terminal-line t-ok">&nbsp;&nbsp; ✔  Normal  (0)  : 9,890</span>
+        <span class="terminal-line t-ok">&nbsp;&nbsp; ✔  Attack  (1)  : 40,110</span>
+        <span class="terminal-line t-out">&nbsp; [3/5]  Training Random Forest …</span>
+        <span class="terminal-line t-ok">&nbsp;&nbsp; ✔  Train time    : 8.42s</span>
+        <span class="terminal-line t-out">&nbsp; [4/5]  Evaluation …</span>
+        <span class="terminal-line t-ok">&nbsp;&nbsp; Accuracy  : 99.52%</span>
+        <span class="terminal-line t-ok">&nbsp;&nbsp; ROC-AUC   : 0.9991</span>
+        <span class="terminal-line t-warn">&nbsp;&nbsp; FN (missed attacks) : 62   ← watch this!</span>
+        <span class="terminal-line t-ok">&nbsp;&nbsp; TP (caught attacks) : 40,048</span>
+        <span class="terminal-line t-out">&nbsp; [5/5]  Saving model artifacts …</span>
+        <span class="terminal-line t-ok">&nbsp;&nbsp; ✔  Model → nids_model.joblib</span>
+        <span class="terminal-line">&nbsp;</span>
+        <span class="terminal-line"><span class="t-prompt">$ </span><span class="t-cmd">python nids_live.py --sim</span></span>
+        <span class="terminal-line t-ok">&nbsp; [12:04:38] ● Normal   ( 4.1%)  TCP   192.168.1.22  → 10.0.0.5</span>
+        <span class="terminal-line t-err">&nbsp; [12:04:39] ● ATTACK   (96.8%)  TCP   203.0.113.47  → 10.0.0.5</span>
+        <span class="terminal-line t-ok">&nbsp; [12:04:39] ● Normal   ( 2.3%)  UDP   192.168.1.14  → 10.0.0.2</span>
+        <span class="terminal-line t-err">&nbsp; [12:04:40] ● ATTACK   (88.4%)  ICMP  203.0.113.99  → 10.0.0.1</span>
+        <span class="terminal-line t-ok">&nbsp; [12:04:40] ● Normal   ( 7.2%)  TCP   192.168.4.6   → 10.0.0.8</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── DATASETS ───────────────────────────── -->
+  <section id="datasets">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2>Datasets</h2>
+    </div>
+
+    <div class="dataset-grid">
+      <div class="dataset-card primary">
+        <div class="ds-badge">RECOMMENDED · DEFAULT</div>
+        <div class="ds-name">KDD Cup '99</div>
+        <div class="ds-year">// 1999 · MIT Lincoln Lab</div>
+        <div class="ds-meta">
+          <div class="ds-meta-item">
+            <div class="ds-meta-label">Records</div>
+            <div class="ds-meta-value">~4.9M</div>
+          </div>
+          <div class="ds-meta-item">
+            <div class="ds-meta-label">Features</div>
+            <div class="ds-meta-value">41</div>
+          </div>
+          <div class="ds-meta-item">
+            <div class="ds-meta-label">Attack types</div>
+            <div class="ds-meta-value">22</div>
+          </div>
+          <div class="ds-meta-item">
+            <div class="ds-meta-label">Expected acc.</div>
+            <div class="ds-meta-value">~99.5%</div>
+          </div>
+        </div>
+        <div class="ds-desc">The "Hello World" of network intrusion datasets. Available directly via <code style="font-family:var(--mono);font-size:11px">sklearn.datasets.fetch_kddcup99</code> — no download needed. Ideal for getting started quickly. Note: considered an easier dataset; very high accuracy is expected and normal.</div>
+      </div>
+
+      <div class="dataset-card">
+        <div class="ds-badge">ADVANCED · REALISTIC</div>
+        <div class="ds-name">UNSW-NB15</div>
+        <div class="ds-year">// 2015 · UNSW Canberra</div>
+        <div class="ds-meta">
+          <div class="ds-meta-item">
+            <div class="ds-meta-label">Records</div>
+            <div class="ds-meta-value">2.54M</div>
+          </div>
+          <div class="ds-meta-item">
+            <div class="ds-meta-label">Features</div>
+            <div class="ds-meta-value">49</div>
+          </div>
+          <div class="ds-meta-item">
+            <div class="ds-meta-label">Attack types</div>
+            <div class="ds-meta-value">9</div>
+          </div>
+          <div class="ds-meta-item">
+            <div class="ds-meta-label">Expected acc.</div>
+            <div class="ds-meta-value">~94%</div>
+          </div>
+        </div>
+        <div class="ds-desc">More modern and realistic dataset generated using the IXIA PerfectStorm tool in the Cyber Range Lab. Covers contemporary attack types including Fuzzers, Analysis, Backdoors, and Exploits. Download the CSV from Kaggle and run <code style="font-family:var(--mono);font-size:11px">nids_unsw.py</code>.</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span>NIDS · Network Intrusion Detection System · v1.0</span>
+  <span>Python · Scikit-Learn · Pandas · Scapy</span>
+  <span>For educational use only</span>
+</footer>
+
+</body>
+</html>
